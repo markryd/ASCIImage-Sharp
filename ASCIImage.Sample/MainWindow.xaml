@@ -3,5 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:sample="clr-namespace:ASCIImage.Sample"
         Title="MainWindow" Height="350" Width="525">
+    <StackPanel>     
         <sample:Arrow Height="100"/>
+        <sample:Lock Height="100"/>
+    </StackPanel>
+
 </Window>

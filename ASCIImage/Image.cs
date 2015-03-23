@@ -11,30 +11,36 @@ namespace ASCIImage
 {
     public class Image
     {
-        public FrameworkElement DrawASCII(string[] shape)
+        public Path DrawASCII(string[] shape)
         {
             var x = StrictASCIIRepresentationFromLenientASCIIRepresentation(shape);
             var y = ShapesFromNumbersInStrictASCIIRepresentation(x);
             return Combine(y);
         }
 
-        public FrameworkElement Combine(Shape[] shapes)
+        public Path Combine(Geometry[] shapes)
         {
-            var grid = new Grid();
-            foreach (var shape in shapes)
-            {
-                grid.Children.Add(shape);
-            }
-            var viewBox = new Viewbox();
-            viewBox.Child = grid;
-            return viewBox;
+            var path = new Path();
+            path.Stroke = new SolidColorBrush(Color.FromRgb(0, 0, 0));
+            path.Fill = new SolidColorBrush(Color.FromRgb(0, 0, 0));
+            path.StrokeThickness = 1;
+
+            var geom = shapes.FirstOrDefault();
+            if (geom == null)
+                return path;
+
+            geom = shapes.Skip(1).Aggregate(geom, (current, shape) => new CombinedGeometry(current, shape));
+
+            path.Data = geom;
+
+            return path;
         }
 
-        public Shape[] ShapesFromNumbersInStrictASCIIRepresentation(string[] representation)
+        public Geometry[] ShapesFromNumbersInStrictASCIIRepresentation(string[] representation)
         {
             var countRows = representation.Length;
             if (countRows == 0)
-                return new Shape[0];
+                return new Geometry[0];
 
             var countCols = representation[0].Length;
             var countPixels = countRows * countCols;
@@ -47,13 +53,13 @@ namespace ASCIImage
                 int i = 0;
                 while ((i = asciiString.IndexOf(c, i)) != -1)
                 {
-                    markPositions.Add(Tuple.Create(c, new Point(i % countCols, countRows - 1 - i / countCols)));
+                    markPositions.Add(Tuple.Create(c, new Point(i % countCols, countRows - 1 + i / countCols)));
                     i++;
                 }
             }
 
             List<Tuple<char, Point>> currentPoints = null;
-            var shapes = new List<Shape>();
+            var shapes = new List<Geometry>();
 
             foreach (var c in MarkCharactersForASCIIShape)
             {
@@ -76,15 +82,15 @@ namespace ASCIImage
 
                     // single pixel
                     if (numberOfPoints == 1)
-                        shapes.Add(PolygonWithPointValues(currentPoints));
+                        shapes.Add(PolygonWithPointValues(points));
 
                     // line
                     else if (numberOfPoints == 2)
-                        shapes.Add(PolygonWithPointValues(currentPoints));
+                        shapes.Add(PolygonWithPointValues(points));
 
                     // ellipse
                     else if (numberOfPoints > 2)
-                        shapes.Add(EllipseWithPointValues(currentPoints));
+                        shapes.Add(EllipseWithPointValues(points));
                 }
             }
 
@@ -94,7 +100,7 @@ namespace ASCIImage
 
         }
 
-        public Shape PolygonWithPointValues(IEnumerable<Tuple<char, Point>> points)
+        public Geometry PolygonWithPointValues(IEnumerable<Tuple<char, Point>> points)
         {
             const int scale = 1;
             var first = points.First();
@@ -112,18 +118,17 @@ namespace ASCIImage
                 pathFigure.Segments.Add(lineSegment1);
             }
 
-            var path = new Path();
-            path.Stroke = new SolidColorBrush(Color.FromRgb(0, 0, 0));
-            path.Fill = new SolidColorBrush(Color.FromRgb(0, 0, 0));
-            path.StrokeThickness = scale;
-            path.Data = pathGeometry;
-
-            return path;
+            return pathGeometry;
         }
 
-        public Shape EllipseWithPointValues(IEnumerable<Tuple<char, Point>> points)
+        public Geometry EllipseWithPointValues(IEnumerable<Tuple<char, Point>> points)
         {
-            return null;
+            var minx = points.Min(x => x.Item2.X);
+            var miny = points.Min(x => x.Item2.Y);
+            var maxx = points.Max(x => x.Item2.X);
+            var maxy = points.Max(x => x.Item2.Y);
+            var ellipse = new EllipseGeometry(new Rect(new Point(minx, miny), new Point(maxx, maxy)));
+            return ellipse;
         }
 
         public string[] StrictASCIIRepresentationFromLenientASCIIRepresentation(string[] lenientRep)
@@ -160,9 +165,8 @@ namespace ASCIImage
                 .OrderBy(x => x)
                 .ToArray();
 
-
             //nfi what's going on here   
-            var smallestGap = gaps.LastOrDefault();  //?
+            var smallestGap = gaps.LastOrDefault(); 
             if (smallestGap == 0)
                 smallestGap = 1;
             var pixelGap = 1;
