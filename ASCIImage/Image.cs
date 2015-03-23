@@ -185,30 +185,9 @@ namespace ASCIImage
                 .OrderBy(x => x)
                 .ToArray();
 
-            //nfi what's going on here   
-            var smallestGap = gaps.LastOrDefault(); 
-            if (smallestGap == 0)
-                smallestGap = 1;
-            var pixelGap = 1;
-            for (var i = smallestGap; i > 1; i--)
-            {
-                var gap = gaps.FirstOrDefault();
-                var j = 0;
-                while (gap != null && gap % i == 0)
-                {
-                    j++;
-                    if (j > gaps.Length - 1)
-                        break;
-                    gap = gaps[j];
-                }
-                if (gap == null)
-                    continue;
-
-                // yes, the value 'i' divides all the gaps we collected: it is the greater common divisor!
-                // if we never get there, the common divisor will be 1, which is always correct
-                pixelGap = i;
-                break;
-            }
+            var pixelGap = gaps.FirstOrDefault();
+            if (pixelGap == 0)
+                pixelGap = 1;
 
             var firstColumn = pixelColumns.First();
             var lastColumn = pixelColumns.Last();
