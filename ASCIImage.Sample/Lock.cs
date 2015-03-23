@@ -1,4 +1,5 @@
 ﻿using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace ASCIImage.Sample
 {
@@ -25,7 +26,14 @@ namespace ASCIImage.Sample
                 @" · · · · · · · · · · · · · · · ",
                 @" · · 6 · · · · · · · · · · 5 · "
             };
-            Child = a.DrawASCII(s);
+            var context = new[]
+            {
+                new Context(2, new SolidColorBrush(Colors.Black), new SolidColorBrush(Colors.White)),
+                new Context(1, new SolidColorBrush(Colors.Black), new SolidColorBrush(Colors.Black)),
+                new Context(1, new SolidColorBrush(Colors.White), new SolidColorBrush(Colors.White)),
+                new Context(1, new SolidColorBrush(Colors.White), new SolidColorBrush(Colors.White)),
+            };
+            Child = a.DrawASCII(s, context);
         }
     }
 }

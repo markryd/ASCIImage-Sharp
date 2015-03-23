@@ -9,31 +9,51 @@ using System.Windows.Shapes;
 
 namespace ASCIImage
 {
+    public class Context
+    {
+        public Context(double strokeThickness, Brush stroke, Brush fill)
+        {
+            StrokeThickness = strokeThickness;
+            Stroke = stroke;
+            Fill = fill;
+        }
+
+        public double StrokeThickness { get; set; }
+        public Brush Stroke { get; set; }
+        public Brush Fill { get; set; }
+    }
+
     public class Image
     {
-        public Path DrawASCII(string[] shape)
+        public FrameworkElement DrawASCII(string[] shape, Context[] contexts = null)
         {
             var x = StrictASCIIRepresentationFromLenientASCIIRepresentation(shape);
             var y = ShapesFromNumbersInStrictASCIIRepresentation(x);
-            return Combine(y);
+            return Combine(y, contexts);
         }
 
-        public Path Combine(Geometry[] shapes)
+        public FrameworkElement Combine(Geometry[] shapes, Context[] contexts)
         {
-            var path = new Path();
-            path.Stroke = new SolidColorBrush(Color.FromRgb(0, 0, 0));
-            path.Fill = new SolidColorBrush(Color.FromRgb(0, 0, 0));
-            path.StrokeThickness = 1;
+            if (contexts == null)
+            {
+                contexts = new[]{new Context(1, new SolidColorBrush(Colors.Black), new SolidColorBrush(Colors.Black)) };
+            }
 
-            var geom = shapes.FirstOrDefault();
-            if (geom == null)
-                return path;
+            var grid = new Grid();
+            for (int i = 0; i < shapes.Length; i++)
+            {
+                var context = i < contexts.Length ? contexts[i] : contexts[0];
+                var path = new Path
+                {
+                    StrokeThickness = context.StrokeThickness,
+                    Stroke = context.Stroke,
+                    Fill = context.Fill,
+                    Data = shapes[i]
+                };
+                grid.Children.Add(path);
+            }
 
-            geom = shapes.Skip(1).Aggregate(geom, (current, shape) => new CombinedGeometry(current, shape));
-
-            path.Data = geom;
-
-            return path;
+            return grid;
         }
 
         public Geometry[] ShapesFromNumbersInStrictASCIIRepresentation(string[] representation)
@@ -53,7 +73,7 @@ namespace ASCIImage
                 int i = 0;
                 while ((i = asciiString.IndexOf(c, i)) != -1)
                 {
-                    markPositions.Add(Tuple.Create(c, new Point(i % countCols, countRows - 1 + i / countCols)));
+                    markPositions.Add(Tuple.Create(c, new Point(i % countCols, i / countCols)));
                     i++;
                 }
             }
@@ -63,8 +83,8 @@ namespace ASCIImage
 
             foreach (var c in MarkCharactersForASCIIShape)
             {
-                var points = markPositions.Where(x => x.Item1 == c).ToArray();
-                var numberOfPoints = points.Length;
+                var points = markPositions.Where(x => x.Item1 == c).ToList();
+                var numberOfPoints = points.Count;
 
                 if (numberOfPoints == 1)
                 {
@@ -100,7 +120,7 @@ namespace ASCIImage
 
         }
 
-        public Geometry PolygonWithPointValues(IEnumerable<Tuple<char, Point>> points)
+        public Geometry PolygonWithPointValues(List<Tuple<char, Point>> points)
         {
             const int scale = 1;
             var first = points.First();
@@ -121,7 +141,7 @@ namespace ASCIImage
             return pathGeometry;
         }
 
-        public Geometry EllipseWithPointValues(IEnumerable<Tuple<char, Point>> points)
+        public Geometry EllipseWithPointValues(List<Tuple<char, Point>> points)
         {
             var minx = points.Min(x => x.Item2.X);
             var miny = points.Min(x => x.Item2.Y);
